@@ -189,7 +189,7 @@ static void updateOLED() {
   oled.clearBuffer();
   oled.setFont(u8g2_font_6x10_tf);
 
-  // Time header
+  // 1. Time header (Line 1, y=12)
   if (rtcFound) {
     DateTime now = rtc.now();
     char ts[32];
@@ -203,29 +203,39 @@ static void updateOLED() {
     Serial.print("[No RTC] ");
   }
 
-  // SHT40
+  // 2. Uptime (Line 2, y=25)
+  uint32_t totalSecs = millis() / 1000;
+  int h = totalSecs / 3600;
+  int m = (totalSecs % 3600) / 60;
+  int s = totalSecs % 60;
+  char upStr[32];
+  snprintf(upStr, sizeof(upStr), "on: %02d:%02d:%02d", h, m, s);
+  oled.drawStr(0, 25, upStr);
+  Serial.printf("Uptime: %s | ", upStr);
+
+  // 3. SHT40 (Line 3, y=38)
   if (shtFound) {
     char l1[32];
     snprintf(l1, sizeof(l1), "SHT40: %.1fC  %.1f%%", shtTemp, shtHum);
-    oled.drawStr(0, 30, l1);
+    oled.drawStr(0, 38, l1);
     Serial.printf("SHT: %.1fC %.1f%% | ", shtTemp, shtHum);
   } else {
-    oled.drawStr(0, 30, "SHT40: ERROR");
+    oled.drawStr(0, 38, "SHT40: ERROR");
     Serial.print("SHT: ERR | ");
   }
 
-  // HMP60 (ADS1115)
+  // 4. HMP60 (Line 4, y=51)
   if (adsFound) {
     char l2[32];
     snprintf(l2, sizeof(l2), "HMP60: %.1fC  %.1f%%", hmpTemp, hmpHum);
-    oled.drawStr(0, 48, l2);
+    oled.drawStr(0, 51, l2);
     Serial.printf("HMP: %.1fC %.1f%% | ", hmpTemp, hmpHum);
   } else {
-    oled.drawStr(0, 48, "HMP60: ERROR");
+    oled.drawStr(0, 51, "HMP60: ERROR");
     Serial.print("HMP: ERR | ");
   }
 
-  // SD status
+  // 5. SD status (Line 5, y=64)
   if (sdFound) {
     oled.drawStr(0, 64, "SD LOG: OK (1m)");
     Serial.println("SD: OK");
