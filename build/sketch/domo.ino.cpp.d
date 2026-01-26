@@ -138,15 +138,20 @@ C:\Users\Ale\Documents\Arduino\domo\build\sketch\domo.ino.cpp.o: \
  C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\cores\esp32/Arduino.h \
  C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\libraries\Wire\src/Wire.h \
  C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\cores\esp32/esp32-hal.h \
+ C:\Users\Ale\Documents\Arduino\libraries\Adafruit_BME280_Library/Adafruit_BME280.h \
+ C:\Users\Ale\Documents\Arduino\libraries\Adafruit_BusIO/Adafruit_SPIDevice.h \
+ C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\libraries\SPI\src/SPI.h \
+ C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\cores\esp32/esp32-hal-spi.h \
+ C:\Users\Ale\Documents\Arduino\libraries\Adafruit_Unified_Sensor/Adafruit_Sensor.h \
+ C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\cores\esp32/Print.h \
+ C:\Users\Ale\Documents\Arduino\libraries\DHT_sensor_library/DHT.h \
+ C:\Users\Ale\Documents\Arduino\libraries\DHT_sensor_library/DHT_U.h \
  C:\Users\Ale\Documents\Arduino\libraries\RTClib\src/RTClib.h \
  C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\libraries\SD\src/SD.h \
  C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\libraries\FS\src/FS.h \
- C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\libraries\SPI\src/SPI.h \
- C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\cores\esp32/esp32-hal-spi.h \
  C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\libraries\SD\src/sd_defines.h \
  C:\Users\Ale\Documents\Arduino\libraries\SHT4x/SHT4x.h \
  C:\Users\Ale\Documents\Arduino\libraries\U8g2\src/U8g2lib.h \
- C:\Users\Ale\AppData\Local\Arduino15\packages\esp32\hardware\esp32\2.0.17\cores\esp32/Print.h \
  C:\Users\Ale\Documents\Arduino\libraries\U8g2\src/U8x8lib.h \
  C:\Users\Ale\Documents\Arduino\libraries\U8g2\src/clib/u8x8.h \
  C:\Users\Ale\Documents\Arduino\libraries\U8g2\src/clib/u8g2.h \
