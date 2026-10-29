@@ -38,8 +38,8 @@ Conecta la salida de temperatura del HMP60 a A0 del ADS1115 y la de humedad a A1
 2. Instala el paquete de placas **esp32 de Espressif Systems** y selecciona **ESP32 Dev Module** (`esp32:esp32:esp32`). Los artefactos incluidos hacen referencia al core **2.0.17**; las versiones de las bibliotecas no están fijadas en un manifiesto.
 3. Instala las bibliotecas indicadas abajo y sus dependencias.
 4. Selecciona el puerto de la placa, compila y carga el sketch. La configuración de VS Code está en [`.vscode/arduino.json`](.vscode/arduino.json); su puerto `COM1` debe ajustarse al equipo utilizado.
-5. Abre el monitor serie a **115200 baudios** para revisar mensajes `[INIT]`, `[OK]`, `[ERR]`, `[ADS RAW]` y `[LOG]`.
-6. Configura el DS3231 con fecha y hora válidas por separado: el sketch no llama a `rtc.adjust()` ni comprueba `rtc.lostPower()`.
+5. Abre el monitor serie a **115200 baudios** para revisar mensajes `[INIT]`, `[OK]`, `[ERR]`, `[ADS RAW]` y `[LOG]`. Envía `h` o `help` con un final de línea para ver instrucciones y el estado del equipo.
+6. Espera el mensaje `[OK] RTC Found` y ajusta el DS3231 por serial como se indica abajo. El sketch no comprueba automáticamente `rtc.lostPower()`.
 7. Inserta una MicroSD compatible con la biblioteca `SD` y verifica que aparezca `[LOG] Data written`.
 
 | Biblioteca | Autor / proveedor | Cabeceras |
@@ -54,6 +54,34 @@ Conecta la salida de temperatura del HMP60 a A0 del ADS1115 y la de humedad a A1
 | Adafruit BusIO | Adafruit | Dependencia de bibliotecas Adafruit |
 
 `Arduino.h`, `Wire.h`, `SPI.h` y `SD.h` forman parte del core ESP32. El repositorio no incluye un archivo `platformio.ini`.
+
+## Comandos por serial
+
+Abre el monitor serie a **115200 baudios** y selecciona un final de línea **Nueva línea (LF)**, **Retorno de carro (CR)** o **Ambos (CRLF)**. Los comandos se ejecutan al recibir el final de línea.
+
+| Comando | Función |
+| --- | --- |
+| `h` | Muestra la ayuda y el estado de inicialización de los componentes. |
+| `help` | Equivalente a `h`. |
+| `DD/MM/AAAA HH:MM:SS` | Ajusta la fecha y hora del RTC DS3231. |
+
+### Ayuda y componentes del dispositivo
+
+Escribe `h` o `help` en minúsculas y pulsa **Enviar**. La respuesta explica el ajuste de fecha y hora, muestra un ejemplo y enumera los componentes configurados: OLED SH1106, SHT40, ADS1115/HMP60, BME280, DS3231, DHT22 y MicroSD, con sus direcciones I2C o conexiones. También muestra la fecha y hora actual del RTC si está inicializado.
+
+Los estados corresponden a las banderas de inicialización del firmware; no constituyen una comprobación continua de conexión física. La inicialización del ADS1115 no confirma la conexión del HMP60, y la del DHT22 no garantiza una lectura válida. Un componente pendiente puede estar ausente, haber fallado o estar esperando el próximo intento de inicialización.
+
+### Ajuste de fecha y hora
+
+Una vez que aparezca `[OK] RTC Found`, envía una línea con el formato exacto `DD/MM/AAAA HH:MM:SS`, usando hora de **24 horas**. Por ejemplo:
+
+```text
+29/10/2026 14:35:00
+```
+
+El firmware valida los días de cada mes, los años bisiestos y los rangos de hora (00–23), minutos y segundos (00–59). Se admiten años de **2000 a 2099**. Una línea inválida o demasiado larga, o un RTC sin inicializar, produce un mensaje `[ERR]` y no modifica la hora.
+
+Al aceptar el comando, llama a `rtc.adjust()` y muestra `[OK] Fecha/hora enviada al RTC: 29/10/2026 14:35:00`. El próximo registro utiliza la fecha ajustada para seleccionar el archivo diario. No se convierte la zona horaria: introduce la hora que quieras mantener en el RTC. El formato del CSV permanece igual.
 
 ## Operación y formato CSV
 

@@ -13,6 +13,7 @@
 #include <SPI.h>
 #include <U8g2lib.h>
 #include <Wire.h>
+#include <string.h>
 
 /* ===== PIN DEFINITIONS ===== */
 // SD Card SPI Configuration (HSPI)
@@ -95,6 +96,134 @@ static float clampf(float x, float lo, float hi) {
   if (x > hi)
     return hi;
   return x;
+}
+
+/* ===================== SERIAL RTC SETTING ===================== */
+// Formato exacto: DD/MM/AAAA HH:MM:SS (24 horas, años 2000 a 2099).
+static bool parseSerialDateTime(const char *text, DateTime &dateTime) {
+  if (strlen(text) != 19 || text[2] != '/' || text[5] != '/' ||
+      text[10] != ' ' || text[13] != ':' || text[16] != ':')
+    return false;
+
+  for (uint8_t i = 0; i < 19; ++i) {
+    if (i == 2 || i == 5 || i == 10 || i == 13 || i == 16)
+      continue;
+    if (text[i] < '0' || text[i] > '9')
+      return false;
+  }
+
+  uint8_t day = (text[0] - '0') * 10 + text[1] - '0';
+  uint8_t month = (text[3] - '0') * 10 + text[4] - '0';
+  uint16_t year = (text[6] - '0') * 1000 + (text[7] - '0') * 100 +
+                  (text[8] - '0') * 10 + text[9] - '0';
+  uint8_t hour = (text[11] - '0') * 10 + text[12] - '0';
+  uint8_t minute = (text[14] - '0') * 10 + text[15] - '0';
+  uint8_t second = (text[17] - '0') * 10 + text[18] - '0';
+
+  if (year < 2000 || year > 2099 || month < 1 || month > 12 ||
+      hour > 23 || minute > 59 || second > 59)
+    return false;
+
+  static const uint8_t daysInMonth[] = {31, 28, 31, 30, 31, 30,
+                                      31, 31, 30, 31, 30, 31};
+  // Dentro de 2000–2099, los años divisibles por 4 son bisiestos.
+  uint8_t maxDay = daysInMonth[month - 1];
+  if (month == 2 && year % 4 == 0)
+    maxDay = 29;
+  if (day < 1 || day > maxDay)
+    return false;
+
+  dateTime = DateTime(year, month, day, hour, minute, second);
+  return true;
+}
+
+static void setRTCFromSerial(const char *text) {
+  DateTime dateTime;
+  if (!parseSerialDateTime(text, dateTime)) {
+    Serial.println("[ERR] Fecha/hora invalida. Use DD/MM/AAAA HH:MM:SS "
+                   "(24h, 2000-2099).");
+    return;
+  }
+  if (!rtcFound) {
+    Serial.println("[ERR] RTC no inicializado. Espere a [OK] RTC Found y reenvie.");
+    return;
+  }
+
+  rtc.adjust(dateTime);
+  lastYMD = -1; // Recalcular el archivo diario con la nueva fecha.
+  Serial.printf("[OK] Fecha/hora enviada al RTC: %02d/%02d/%04d %02d:%02d:%02d\n",
+                dateTime.day(), dateTime.month(), dateTime.year(),
+                dateTime.hour(), dateTime.minute(), dateTime.second());
+}
+
+static void printSerialHelp() {
+  Serial.println("\n=== Ayuda Domo ===");
+  Serial.println("Comandos (115200 baudios; finalizar con CR, LF o CRLF):");
+  Serial.println("  h / help                Muestra esta ayuda y el estado del equipo.");
+  Serial.println("  DD/MM/AAAA HH:MM:SS      Ajusta la fecha y hora del RTC DS3231.");
+  Serial.println("  Ejemplo: 29/10/2026 14:35:00");
+  Serial.println("Use hora de 24h (00-23), minutos/segundos 00-59 y anos 2000-2099.");
+  Serial.println("Espere a [OK] RTC Found antes de ajustar. Se validan dias y bisiestos.");
+  Serial.println("La hora se guarda sin conversion de zona horaria.");
+  Serial.println("\nComponentes configurados y estado de inicializacion:");
+  Serial.println("I2C: pines predeterminados de la placa (ESP32 Dev: SDA 21, SCL 22).");
+  Serial.printf("  OLED SH1106 128x64 (0x%02X): %s\n", OLED_ADDR_7BIT,
+                oledFound ? "inicializado" : "pendiente/no detectado");
+  Serial.printf("  SHT40, temperatura/humedad (0x44): %s\n",
+                shtFound ? "inicializado" : "pendiente/no detectado");
+  Serial.printf("  ADS1115 (0x%02X): %s\n", ADS_ADDR_7BIT,
+                adsFound ? "inicializado" : "pendiente/no detectado");
+  Serial.println("    HMP60: temperatura en A0, humedad en A1 (0-1 V).");
+  Serial.println("    El estado del ADS1115 no confirma la conexion del HMP60.");
+  Serial.printf("  BME280, temperatura/humedad/presion (0x%02X): %s\n",
+                BME_ADDR_7BIT, bmeFound ? "inicializado" : "pendiente/no detectado");
+  Serial.printf("  RTC DS3231 (0x68): %s\n",
+                rtcFound ? "inicializado" : "pendiente/no detectado");
+  if (rtcFound) {
+    DateTime now = rtc.now();
+    Serial.printf("    Fecha/hora RTC: %02d/%02d/%04d %02d:%02d:%02d\n",
+                  now.day(), now.month(), now.year(), now.hour(), now.minute(),
+                  now.second());
+  }
+  Serial.printf("  DHT22 (GPIO %d): %s\n", DHTPIN,
+                dhtFound ? "biblioteca inicializada" : "pendiente");
+  Serial.println("    La inicializacion del DHT22 no confirma una lectura valida.");
+  Serial.printf("  MicroSD HSPI (MISO %d, MOSI %d, CLK %d, CS %d): %s\n",
+                PIN_NUM_MISO, PIN_NUM_MOSI, PIN_NUM_CLK, PIN_NUM_CS,
+                sdFound ? "inicializado" : "pendiente/no detectado");
+  Serial.println("Los estados no son una prueba continua de conexion fisica.");
+  Serial.println("CSV diario: YYYYMMDD.csv; requiere SD y RTC inicializados.");
+  Serial.println("=== Fin de ayuda ===\n");
+}
+
+static void processSerialCommands() {
+  static char buffer[20];
+  static uint8_t length = 0;
+  static bool overflow = false;
+
+  // Limitar el trabajo por vuelta; no esperar a que termine de llegar la línea.
+  for (uint8_t received = 0; received < 64 && Serial.available() > 0;
+       ++received) {
+    char c = static_cast<char>(Serial.read());
+    if (c == '\r' || c == '\n') {
+      if (overflow) {
+        Serial.println("[ERR] Linea demasiado larga. Use h o help para ayuda.");
+      } else if (length > 0) {
+        buffer[length] = '\0';
+        if (strcmp(buffer, "h") == 0 || strcmp(buffer, "help") == 0) {
+          printSerialHelp();
+        } else {
+          setRTCFromSerial(buffer);
+        }
+      }
+      length = 0;
+      overflow = false;
+    } else if (length < sizeof(buffer) - 1) {
+      buffer[length++] = c;
+    } else {
+      overflow = true; // Descartar toda la línea hasta CR o LF.
+    }
+  }
 }
 
 /* ===================== INIT HELPERS ===================== */
@@ -410,6 +539,9 @@ void setup() {
   Serial.begin(115200);
   // delay(1000);
   Serial.println("\n=== ESP32 Multi-Sensor Logger ===");
+  Serial.println("[AYUDA] Envie h o help para instrucciones y estado del equipo.");
+  Serial.println("[RTC] Para ajustar fecha/hora envie DD/MM/AAAA HH:MM:SS "
+                 "(24h), terminando con Enter (CR o LF).");
 
   // First init attempt
   tryInitNonBlocking();
@@ -465,6 +597,8 @@ void loop() {
   if (!oledFound || !shtFound || !adsFound || !rtcFound || !sdFound) {
     tryInitNonBlocking();
   }
+
+  processSerialCommands();
 
   // Periodic read
   if (nowMs - lastReadTime >= READ_INTERVAL_MS) {
