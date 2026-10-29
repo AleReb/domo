@@ -1,0 +1,16 @@
+SPDX-License-Identifier: CERN-OHL-S-2.0
+
+Los diseños propios de hardware de este directorio (esquema, placa,
+archivos de proyecto, respaldos y documentación específica) se distribuyen
+bajo CERN Open Hardware Licence Version 2 - Strongly Reciprocal, v2.0.
+
+Autor: Alejandro Rebolledo.
+Source Location: https://github.com/AleReb/domo
+Texto completo: ../LICENSES/CERN-OHL-S-2.0.txt
+
+Los componentes de terceros conservan sus licencias originales.
+Se conservan los avisos CC BY 4.0 de Miroslaw Brudnowski para la
+biblioteca diy-modules incorporada en los archivos EAGLE.
+Véase ../LICENSE para el alcance completo.
+
+Los diseños se proporcionan sin garantías conforme a la licencia.

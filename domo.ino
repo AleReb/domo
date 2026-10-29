@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Autor: Alejandro Rebolledo. Véase LICENSE y LICENSES/GPL-3.0-only.txt.
+
 #include <Adafruit_ADS1X15.h>
 #include <Adafruit_BME280.h>
 #include <Adafruit_Sensor.h>
