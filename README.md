@@ -2,6 +2,13 @@
 
 Domo mide temperatura, humedad y presión, muestra lecturas en una pantalla OLED y guarda archivos CSV diarios en una tarjeta MicroSD. Este documento describe el comportamiento de [domo.ino](domo.ino).
 
+## Guía rápida para registrar una medición
+
+1. **Prepara el equipo.** Con el domo apagado, conecta los sensores según la tabla de conexiones e inserta la MicroSD. Si es la primera carga, sigue la sección de compilación y puesta en marcha.
+2. **Comprueba el arranque.** Enciende el domo y abre el monitor serie a **115200 baudios**, con final de línea LF, CR o CRLF. Envía `h` y comprueba que el RTC y la MicroSD estén inicializados. Ambos son necesarios para guardar datos.
+3. **Comprueba la hora.** La respuesta a `h` muestra la fecha y hora del DS3231. Si debes ajustarla, espera a `[OK] RTC Found`, envía la hora local actual en formato `DD/MM/AAAA HH:MM:SS` y vuelve a consultarla con `h`. Para un ensayo de calibración, comprueba también la hora del instrumento de referencia.
+4. **Verifica el registro.** El equipo registra automáticamente. Busca `[LOG] Data written: /YYYYMMDD.csv` y comprueba que la fecha del nombre sea la esperada. Al terminar, apaga el domo y revisa el CSV de la raíz de la tarjeta. Los sensores se leen cada 2 s y el equipo intenta guardar cada 1 s, por lo que dos filas seguidas pueden contener la misma lectura.
+
 ## Componentes
 
 | Componente | Función y configuración del firmware |
@@ -112,6 +119,21 @@ Timestamp,Timeon,SHT_Temp,SHT_Hum,HMP_Temp,HMP_Hum,RefBME_Temp,RefBME_RefHum,BME
 | `BME_Press` | Presión en hPa, con un decimal. |
 
 `RefBME_RefHum` es el nombre generado actualmente por el código. Los datos no disponibles se representan como `nan`; una lectura fallida del SHT40 puede conservar el último valor válido.
+
+## Nota sobre los métodos de calibración
+
+El CSV del domo contiene las lecturas que entrega el firmware. En el HMP60, el ESP32 convierte la tensión a °C y % HR y limita la humedad a 0–100 %. Los coeficientes experimentales se calculan después, por domo, sensor y variable. Las columnas `RefBME_*` corresponden al BME280 del domo. La referencia de los ensayos procede de un instrumento externo registrado en un archivo `.dat`.
+
+| Ensayo | Método y alcance |
+| --- | --- |
+| [3 de noviembre](Calibraciones/Calibraciones%2003-11-2026/Análisis.py) | Compara SHT40 y DHT22 de los domos 1 y 3 con la referencia. Selecciona tramos estables en ventanas de 5 min cerca de cada nivel y empareja lecturas con hasta 2 s de diferencia. El resultado cuantifica el error por nivel mediante MAE y RMSE. |
+| [4 de noviembre](Calibraciones/Calibraciones%2004-11-2026/Análisis.ipynb) | Estima desfases de reloj por correlación con los domos 1 y 3 antes de comparar las series. Conserva la hora original en `Hora_RTC`. El desplazamiento corrige el instante de comparación. |
+| [10 de noviembre](Calibraciones/Calibraciones%2010-11-2026/Analisis_11-11-2026.ipynb) | Tras ajustar los relojes, promedia las lecturas del domo en ventanas de 10 s y las empareja con la referencia. Ajusta una recta con los últimos 30 min de cada periodo incluido. Conviene revisar la dispersión de la referencia porque una ventana fija puede incluir parte de la transición. |
+| [12–13 de noviembre](Calibraciones/Calibraciones%2012-11-2026/Analisis_12-11-2026.ipynb) | Usa los relojes tal como se registraron y separa los periodos de temperatura de los de humedad. Ajusta contra el valor medido por la referencia, incluso si la cámara quedó lejos de la consigna. Evalúa dispersión y deriva en ventanas de 10 min y toma las lecturas estables de los últimos 20 min contados desde la última lectura estable de cada periodo. Exige al menos 5 min equivalentes de muestras seleccionadas. |
+
+**Cómo usar un ajuste.** Los dos últimos cuadernos calculan `valor_corregido = a + b × lectura_del_sensor`. Busca el par `(a, b)` en `CALIBRACION` para el domo, sensor y variable correspondientes. Aplícalo una sola vez a la lectura en °C o % HR y conserva el original. Los cuadernos generan columnas `*_cal` en memoria. El firmware guarda los valores previos a ese ajuste.
+
+**Cómo juzgar el resultado.** En el ensayo del 12–13, el «RMSE estable después» se calcula sobre las muestras usadas para ajustar la recta y el «RMSE total después» también incluye esas muestras. Para decidir si el ajuste sirve en otra campaña, comprueba que el sensor aportó pares válidos en varios niveles y compara el error antes y después en un ensayo independiente, dentro del intervalo que cubrió la referencia.
 
 ## Limitaciones actuales
 
